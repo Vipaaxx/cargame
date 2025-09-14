@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Open Wereld Race Spel</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: linear-gradient(to bottom, #1e5799, #207cca);
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+        
+        #game-container {
+            position: relative;
+            width: 800px;
+            height: 600px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        #game-canvas {
+            background: linear-gradient(to bottom, #7ec850, #5c9e31);
+        }
+        
+        #controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            color: white;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 10px;
+            border-radius: 5px;
+        }
+        
+        #speed-display {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            color: white;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+        }
+        
+        #title {
+            position: absolute;
+            top: 20px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            color: white;
+            font-size: 32px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas" width="800" height="600"></canvas>
+        <div id="title">Car Race Game</div>
+        <div id="controls">
+            <p>Use WASD to move<br>R: Reset Car</p>
+        </div>
+        <div id="speed-display">
+            <div id="speed">0 km/u</div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const canvas = document.getElementById('game-canvas');
+            const ctx = canvas.getContext('2d');
+            const speedDisplay = document.getElementById('speed');
+  
+            const car = {
+                x: canvas.width / 2,
+                y: canvas.height / 2,
+                width: 40,
+                height: 20,
+                speed: 0,
+                maxSpeed: 5,
+                acceleration: 0.1,
+                deceleration: 0.05,
+                rotation: 0, 
+                rotationSpeed: 0.05,
+                color: 'red'
+            };
+            
+            const objects = [];
+            
+            for (let i = 0; i < 30; i++) {
+                objects.push({
+                    type: 'tree',
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    size: 20 + Math.random() * 15
+                });
+            }
+            
+            for (let i = 0; i < 10; i++) {
+                objects.push({
+                    type: 'building',
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    width: 60 + Math.random() * 60,
+                    height: 80 + Math.random() * 70,
+                    color: `rgb(${100 + Math.random() * 155}, ${100 + Math.random() * 155}, ${100 + Math.random() * 155})`
+                });
+            }
+            
+            objects.push({
+                type: 'water',
+                x: canvas.width * 0.7,
+                y: canvas.height * 0.6,
+                width: 200,
+                height: 150
+            });
+            
+            const keys = {};
+            
+            document.addEventListener('keydown', function(e) {
+                keys[e.key] = true;
+                
+                if (e.key === 'r' || e.key === 'R') {
+                    car.x = canvas.width / 2;
+                    car.y = canvas.height / 2;
+                    car.speed = 0;
+                    car.rotation = 0;
+                }
+            });
+            
+            document.addEventListener('keyup', function(e) {
+                keys[e.key] = false;
+            });
+            
+            function update() {
+                if (keys['ArrowUp'] || keys['w'] || keys['W']) {
+                    car.speed += car.acceleration;
+                    if (car.speed > car.maxSpeed) car.speed = car.maxSpeed;
+                } else if (keys['ArrowDown'] || keys['s'] || keys['S']) {
+                    car.speed -= car.acceleration;
+                    if (car.speed < -car.maxSpeed / 2) car.speed = -car.maxSpeed / 2;
+                } else {
+                    if (car.speed > 0) {
+                        car.speed -= car.deceleration;
+                        if (car.speed < 0) car.speed = 0;
+                    } else if (car.speed < 0) {
+                        car.speed += car.deceleration;
+                        if (car.speed > 0) car.speed = 0;
+                    }
+                }
+                
+                if (car.speed !== 0) {
+                    if (keys['ArrowLeft'] || keys['a'] || keys['A']) {
+                        car.rotation -= car.rotationSpeed * (car.speed / car.maxSpeed);
+                    }
+                    if (keys['ArrowRight'] || keys['d'] || keys['D']) {
+                        car.rotation += car.rotationSpeed * (car.speed / car.maxSpeed);
+                    }
+                }
+                
+                car.x += Math.sin(car.rotation) * car.speed;
+                car.y -= Math.cos(car.rotation) * car.speed;
+                
+                if (car.x < 0) car.x = 0;
+                if (car.x > canvas.width) car.x = canvas.width;
+                if (car.y < 0) car.y = 0;
+                if (car.y > canvas.height) car.y = canvas.height;
+                
+                // Snelheid bijwerken in display
+                speedDisplay.textContent = Math.abs(Math.round(car.speed * 20)) + ' km/u';
+            }
+            
+            function draw() {
+                // Achtergrond tekenen
+                ctx.fillStyle = '#7ec850';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Weg tekenen (een eenvoudige weg door het midden)
+                ctx.fillStyle = '#555';
+                ctx.fillRect(canvas.width / 2 - 100, 0, 200, canvas.height);
+                
+                ctx.fillStyle = '#fff';
+                ctx.fillRect(canvas.width / 2 - 5, 0, 10, canvas.height);
+                
+                // Wereld objecten tekenen
+                objects.forEach(obj => {
+                    if (obj.type === 'tree') {
+                        // Boom tekenen
+                        ctx.fillStyle = '#8B4513'; // stam
+                        ctx.fillRect(obj.x - 3, obj.y - obj.size/2, 6, obj.size/2);
+                        
+                        ctx.fillStyle = '#228B22'; // bladeren
+                        ctx.beginPath();
+                        ctx.arc(obj.x, obj.y - obj.size/2, obj.size/2, 0, Math.PI * 2);
+                        ctx.fill();
+                    } else if (obj.type === 'building') {
+                        // Gebouw tekenen
+                        ctx.fillStyle = obj.color;
+                        ctx.fillRect(obj.x, obj.y, obj.width, obj.height);
+                        
+                        // Ramen toevoegen
+                        ctx.fillStyle = '#ADD8E6';
+                        for (let i = 0; i < 3; i++) {
+                            for (let j = 0; j < 4; j++) {
+                                ctx.fillRect(
+                                    obj.x + 10 + i * (obj.width - 20) / 3, 
+                                    obj.y + 10 + j * (obj.height - 20) / 4,
+                                    (obj.width - 30) / 3,
+                                    (obj.height - 30) / 4
+                                );
+                            }
+                        }
+                    } else if (obj.type === 'water') {
+                        // Water tekenen
+                        ctx.fillStyle = '#1E90FF';
+                        ctx.fillRect(obj.x, obj.y, obj.width, obj.height);
+                        
+                        // Golfjes tekenen
+                        ctx.strokeStyle = '#87CEEB';
+                        ctx.lineWidth = 2;
+                        for (let i = 0; i < 3; i++) {
+                            ctx.beginPath();
+                            ctx.moveTo(obj.x, obj.y + 30 + i * 20);
+                            ctx.bezierCurveTo(
+                                obj.x + obj.width/4, obj.y + 20 + i * 20,
+                                obj.x + obj.width*3/4, obj.y + 40 + i * 20,
+                                obj.x + obj.width, obj.y + 30 + i * 20
+                            );
+                            ctx.stroke();
+                        }
+                    }
+                });
+                
+                ctx.save();
+                ctx.translate(car.x, car.y);
+                ctx.rotate(car.rotation);
+                
+                ctx.fillStyle = car.color;
+                ctx.fillRect(-car.width / 2, -car.height / 2, car.width, car.height);
+                
+                ctx.fillStyle = '#333';
+                ctx.fillRect(-car.width / 2, -car.height / 2, 5, car.height);
+                ctx.fillRect(car.width / 2 - 5, -car.height / 2, 5, car.height);
+                
+                ctx.fillStyle = '#87CEEB';
+                ctx.fillRect(-car.width / 2 + 10, -car.height / 2 + 5, car.width - 20, car.height - 10);
+                
+                ctx.fillStyle = '#333';
+                ctx.fillRect(-car.width / 2 - 3, -car.height / 2 - 5, 6, 5);
+                ctx.fillRect(-car.width / 2 - 3, car.height / 2, 6, 5);
+                ctx.fillRect(car.width / 2 - 3, -car.height / 2 - 5, 6, 5);
+                ctx.fillRect(car.width / 2 - 3, car.height / 2, 6, 5);
+                
+                ctx.restore();
+            }
+            
+            function gameLoop() {
+                update();
+                draw();
+                requestAnimationFrame(gameLoop);
+            }
+            
+            gameLoop();
+        });
+    </script>
+</body>
+</html>
